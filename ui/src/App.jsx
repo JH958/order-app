@@ -1,23 +1,53 @@
 import { useState } from 'react'
 import OrderPage from './pages/OrderPage'
+import AdminPage from './pages/AdminPage'
 import './App.css'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('order')
+  const [orders, setOrders] = useState([])
+  const [nextOrderId, setNextOrderId] = useState(1)
 
   const handleNavigate = (page) => {
     setCurrentPage(page)
   }
 
+  const handleCreateOrder = (orderData) => {
+    const newOrder = {
+      orderId: nextOrderId,
+      items: orderData.items,
+      totalAmount: orderData.totalAmount,
+      orderTime: orderData.orderTime,
+      status: '주문 접수'
+    }
+    setOrders(prev => [newOrder, ...prev]) // 최신 주문이 위에 오도록
+    setNextOrderId(prev => prev + 1)
+  }
+
+  const handleUpdateOrderStatus = (orderId, newStatus) => {
+    setOrders(prev =>
+      prev.map(order =>
+        order.orderId === orderId
+          ? { ...order, status: newStatus }
+          : order
+      )
+    )
+  }
+
   return (
     <div className="App">
-      {currentPage === 'order' && <OrderPage onNavigate={handleNavigate} />}
+      {currentPage === 'order' && (
+        <OrderPage 
+          onNavigate={handleNavigate} 
+          onCreateOrder={handleCreateOrder}
+        />
+      )}
       {currentPage === 'admin' && (
-        <div className="admin-placeholder">
-          <h1>관리자 화면</h1>
-          <p>관리자 화면은 추후 구현 예정입니다.</p>
-          <button onClick={() => handleNavigate('order')}>주문하기로 돌아가기</button>
-        </div>
+        <AdminPage 
+          onNavigate={handleNavigate}
+          orders={orders}
+          onUpdateOrderStatus={handleUpdateOrderStatus}
+        />
       )}
     </div>
   )

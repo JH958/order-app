@@ -1,0 +1,196 @@
+.order-status {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.order-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.order-status-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.status-filter {
+  padding: 0.5rem 1rem;
+  border: 2px solid #2196F3;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #333;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.status-filter:hover {
+  background-color: #f5f5f5;
+}
+
+.status-filter:focus {
+  outline: none;
+  border-color: #1976D2;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.empty-orders {
+  color: #999;
+  text-align: center;
+  padding: 2rem;
+}
+
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.order-item:hover {
+  border-color: #2196F3;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+}
+
+.order-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.order-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-time {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.status-display {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+.status-display.pending {
+  background-color: #e3f2fd;
+  color: #1976D2;
+}
+
+.status-display.in-progress {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.status-display.completed {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-display.finished {
+  background-color: #f1f8e9;
+  color: #558b2f;
+}
+
+.order-details {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.order-items {
+  color: #333;
+  font-size: 1rem;
+}
+
+.order-amount {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2196F3;
+}
+
+.status-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.status-btn.pending {
+  background-color: #2196F3;
+  color: #fff;
+}
+
+.status-btn.pending:hover {
+  background-color: #1976D2;
+}
+
+.status-btn.in-progress {
+  background-color: #ff9800;
+  color: #fff;
+}
+
+.status-btn.in-progress:hover {
+  background-color: #f57c00;
+}
+
+.status-btn.completed {
+  background-color: #4caf50;
+  color: #fff;
+}
+
+.status-btn.finished {
+  background-color: #66bb6a;
+  color: #fff;
+  cursor: default;
+}
+
+.status-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .order-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .status-btn {
+    width: 100%;
+  }
+
+  .order-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}

@@ -74,9 +74,10 @@ const mockMenus = [
   }
 ]
 
-function OrderPage({ onNavigate }) {
+function OrderPage({ onNavigate, onCreateOrder }) {
   const [menus, setMenus] = useState([])
   const [cartItems, setCartItems] = useState([])
+  const [nextCartItemId, setNextCartItemId] = useState(1)
 
   useEffect(() => {
     // 임시로 mockMenus 사용 (나중에 API로 교체)
@@ -95,13 +96,38 @@ function OrderPage({ onNavigate }) {
       if (existingIndex !== -1) {
         // 기존 아이템 수량 증가
         const updated = [...prev]
+        // cartItemId가 없으면 새로 부여
+        if (!updated[existingIndex].cartItemId) {
+          updated[existingIndex].cartItemId = nextCartItemId
+          setNextCartItemId(prev => prev + 1)
+        }
         updated[existingIndex].quantity += 1
         return updated
       } else {
-        // 새 아이템 추가
-        return [...prev, item]
+        // 새 아이템 추가 (고유 ID 부여)
+        const newId = nextCartItemId
+        setNextCartItemId(prev => prev + 1)
+        return [...prev, { ...item, cartItemId: newId }]
       }
     })
+  }
+
+  const handleRemoveFromCart = (cartItemId) => {
+    setCartItems(prev => prev.filter(item => item.cartItemId !== cartItemId))
+  }
+
+  const handleUpdateQuantity = (cartItemId, newQuantity) => {
+    if (newQuantity < 1) {
+      handleRemoveFromCart(cartItemId)
+      return
+    }
+    setCartItems(prev =>
+      prev.map(item =>
+        item.cartItemId === cartItemId
+          ? { ...item, quantity: newQuantity }
+          : item
+      )
+    )
   }
 
   const handleOrder = () => {
@@ -110,17 +136,25 @@ function OrderPage({ onNavigate }) {
       return
     }
 
-    // 주문 처리 (나중에 API로 교체)
+    // 주문 데이터 생성
+    const totalAmount = cartItems.reduce((total, item) => {
+      const itemPrice = item.basePrice + item.selectedOptions.reduce((sum, opt) => sum + opt.price, 0)
+      return total + (itemPrice * item.quantity)
+    }, 0)
+
     const orderData = {
-      items: cartItems,
-      totalAmount: cartItems.reduce((total, item) => {
-        const itemPrice = item.basePrice + item.selectedOptions.reduce((sum, opt) => sum + opt.price, 0)
-        return total + (itemPrice * item.quantity)
-      }, 0),
+      items: cartItems.map(item => ({
+        menuName: item.menuName,
+        quantity: item.quantity,
+        selectedOptions: item.selectedOptions
+      })),
+      totalAmount: totalAmount,
       orderTime: new Date().toISOString()
     }
 
-    console.log('주문 데이터:', orderData)
+    // App 컴포넌트의 주문 생성 함수 호출
+    onCreateOrder(orderData)
+    
     alert('주문이 완료되었습니다!')
     
     // 장바구니 초기화
@@ -143,7 +177,12 @@ function OrderPage({ onNavigate }) {
           </div>
         </div>
         <div className="cart-section">
-          <ShoppingCart cartItems={cartItems} onOrder={handleOrder} />
+          <ShoppingCart 
+            cartItems={cartItems} 
+            onOrder={handleOrder}
+            onRemoveItem={handleRemoveFromCart}
+            onUpdateQuantity={handleUpdateQuantity}
+          />
         </div>
       </main>
     </div>
