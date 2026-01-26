@@ -1,86 +1,68 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import PropTypes from 'prop-types'
+import { FILTER_STATUS_MAP, ORDER_STATUS, NEXT_STATUS_MAP, STATUS_BUTTON_TEXT, STATUS_BUTTON_CLASS } from '../constants/orderConstants'
 import './OrderStatus.css'
+
+// 순수 함수는 컴포넌트 외부로 이동
+const getDisplayStatus = (status) => {
+  const statusDisplayMap = {
+    [ORDER_STATUS.PENDING]: '제조 시작',
+    [ORDER_STATUS.IN_PROGRESS]: '제조 중',
+    [ORDER_STATUS.COMPLETED]: '제조 완료',
+    [ORDER_STATUS.PICKED_UP]: '픽업 완료'
+  }
+  return statusDisplayMap[status] || status
+}
+
+const getNextStatus = (currentStatus) => {
+  return NEXT_STATUS_MAP[currentStatus] || currentStatus
+}
+
+const getStatusButtonText = (status) => {
+  return STATUS_BUTTON_TEXT[status] || '픽업 완료'
+}
+
+const getStatusButtonClass = (status) => {
+  return STATUS_BUTTON_CLASS[status] || 'status-btn finished'
+}
 
 function OrderStatus({ orders, onUpdateOrderStatus }) {
   const [filterStatus, setFilterStatus] = useState('전체')
 
-  const formatDate = (dateString) => {
+  const formatDate = useCallback((dateString) => {
     const date = new Date(dateString)
     const month = date.getMonth() + 1
     const day = date.getDate()
     const hours = date.getHours()
     const minutes = date.getMinutes().toString().padStart(2, '0')
     return `${month}월 ${day}일 ${hours}:${minutes}`
-  }
+  }, [])
 
-  const formatOrderItems = (items) => {
+  const formatOrderItems = useCallback((items) => {
     return items.map(item => {
       const options = item.selectedOptions && item.selectedOptions.length > 0
         ? ` (${item.selectedOptions.map(opt => opt.name).join(', ')})`
         : ''
       return `${item.menuName}${options} x ${item.quantity}`
     }).join(', ')
-  }
+  }, [])
 
-  const getDisplayStatus = (status) => {
-    if (status === '주문 접수') return '제조 시작'
-    if (status === '제조 중') return '제조 중'
-    if (status === '제조 완료') return '제조 완료'
-    if (status === '픽업 완료') return '픽업 완료'
-    return status
-  }
-
-  const getNextStatus = (currentStatus) => {
-    if (currentStatus === '주문 접수') return '제조 중'
-    if (currentStatus === '제조 중') return '제조 완료'
-    if (currentStatus === '제조 완료') return '픽업 완료'
-    return currentStatus
-  }
-
-  const getStatusButtonText = (status) => {
-    if (status === '주문 접수') return '제조 시작'
-    if (status === '제조 중') return '제조 중'
-    if (status === '제조 완료') return '제조 완료'
-    return '픽업 완료'
-  }
-
-  const getStatusButtonClass = (status) => {
-    if (status === '주문 접수') return 'status-btn pending'
-    if (status === '제조 중') return 'status-btn in-progress'
-    if (status === '제조 완료') return 'status-btn completed'
-    return 'status-btn finished'
-  }
-
-  const getStatusDisplayClass = (status) => {
-    if (status === '주문 접수') return 'status-display pending'
-    if (status === '제조 중') return 'status-display in-progress'
-    if (status === '제조 완료') return 'status-display completed'
-    return 'status-display finished'
-  }
-
-  const handleStatusChange = (orderId, currentStatus) => {
+  const handleStatusChange = useCallback((orderId, currentStatus) => {
     const nextStatus = getNextStatus(currentStatus)
     if (nextStatus !== currentStatus) {
       onUpdateOrderStatus(orderId, nextStatus)
     }
-  }
+  }, [onUpdateOrderStatus])
 
-  const getFilteredOrders = () => {
+  // 필터링된 주문 목록을 useMemo로 메모이제이션
+  const filteredOrders = useMemo(() => {
     if (filterStatus === '전체') return orders
     
-    // 필터 상태를 실제 상태 값으로 매핑
-    const statusMap = {
-      '제조 시작': '주문 접수',
-      '제조 중': '제조 중',
-      '제조 완료': '제조 완료',
-      '픽업 완료': '픽업 완료'
-    }
+    const targetStatus = FILTER_STATUS_MAP[filterStatus]
+    if (!targetStatus) return orders
     
-    const targetStatus = statusMap[filterStatus]
     return orders.filter(order => order.status === targetStatus)
-  }
-
-  const filteredOrders = getFilteredOrders()
+  }, [orders, filterStatus])
 
   return (
     <div className="order-status">
@@ -90,6 +72,7 @@ function OrderStatus({ orders, onUpdateOrderStatus }) {
           className="status-filter"
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
+          aria-label="주문 상태 필터"
         >
           <option value="전체">전체</option>
           <option value="제조 시작">제조 시작</option>
@@ -114,7 +97,8 @@ function OrderStatus({ orders, onUpdateOrderStatus }) {
               <button
                 className={getStatusButtonClass(order.status)}
                 onClick={() => handleStatusChange(order.orderId, order.status)}
-                disabled={order.status === '픽업 완료'}
+                disabled={order.status === ORDER_STATUS.PICKED_UP}
+                aria-label={`${getStatusButtonText(order.status)} 버튼`}
               >
                 {getStatusButtonText(order.status)}
               </button>
@@ -124,6 +108,35 @@ function OrderStatus({ orders, onUpdateOrderStatus }) {
       )}
     </div>
   )
+}
+
+OrderStatus.propTypes = {
+  orders: PropTypes.arrayOf(
+    PropTypes.shape({
+      orderId: PropTypes.number.isRequired,
+      items: PropTypes.arrayOf(
+        PropTypes.shape({
+          menuName: PropTypes.string.isRequired,
+          quantity: PropTypes.number.isRequired,
+          selectedOptions: PropTypes.arrayOf(
+            PropTypes.shape({
+              name: PropTypes.string.isRequired,
+              price: PropTypes.number.isRequired
+            })
+          )
+        })
+      ).isRequired,
+      totalAmount: PropTypes.number.isRequired,
+      orderTime: PropTypes.string.isRequired,
+      status: PropTypes.oneOf([
+        ORDER_STATUS.PENDING,
+        ORDER_STATUS.IN_PROGRESS,
+        ORDER_STATUS.COMPLETED,
+        ORDER_STATUS.PICKED_UP
+      ]).isRequired
+    })
+  ).isRequired,
+  onUpdateOrderStatus: PropTypes.func.isRequired
 }
 
 export default OrderStatus

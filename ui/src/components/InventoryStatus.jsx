@@ -1,4 +1,5 @@
 import './InventoryStatus.css'
+import PropTypes from 'prop-types'
 
 function InventoryStatus({ inventory, onUpdateStock }) {
   const getStockStatus = (stock) => {
@@ -32,7 +33,7 @@ function InventoryStatus({ inventory, onUpdateStock }) {
               <h3 className="inventory-menu-name">{item.menuName}</h3>
               <div className="inventory-stock">
                 <span className="stock-quantity">{item.stock}개</span>
-                <span className={`stock-status ${status.className}`}>
+                <span className={`stock-status ${status.className}`} aria-label={`재고 상태: ${status.text}`}>
                   {status.text}
                 </span>
               </div>
@@ -41,12 +42,14 @@ function InventoryStatus({ inventory, onUpdateStock }) {
                   className="stock-btn decrease-btn"
                   onClick={() => handleDecrease(item.menuId)}
                   disabled={item.stock === 0}
+                  aria-label={`${item.menuName} 재고 감소`}
                 >
                   -
                 </button>
                 <button
                   className="stock-btn increase-btn"
                   onClick={() => handleIncrease(item.menuId)}
+                  aria-label={`${item.menuName} 재고 증가`}
                 >
                   +
                 </button>
@@ -57,6 +60,17 @@ function InventoryStatus({ inventory, onUpdateStock }) {
       </div>
     </div>
   )
+}
+
+InventoryStatus.propTypes = {
+  inventory: PropTypes.arrayOf(
+    PropTypes.shape({
+      menuId: PropTypes.number.isRequired,
+      menuName: PropTypes.string.isRequired,
+      stock: PropTypes.number.isRequired
+    })
+  ).isRequired,
+  onUpdateStock: PropTypes.func.isRequired
 }
 
 export default InventoryStatus

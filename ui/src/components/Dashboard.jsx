@@ -1,4 +1,5 @@
 import './Dashboard.css'
+import PropTypes from 'prop-types'
 
 function Dashboard({ stats }) {
   return (
@@ -23,6 +24,15 @@ function Dashboard({ stats }) {
       </div>
     </div>
   )
+}
+
+Dashboard.propTypes = {
+  stats: PropTypes.shape({
+    totalOrders: PropTypes.number.isRequired,
+    pendingOrders: PropTypes.number.isRequired,
+    inProgressOrders: PropTypes.number.isRequired,
+    completedOrders: PropTypes.number.isRequired
+  }).isRequired
 }
 
 export default Dashboard

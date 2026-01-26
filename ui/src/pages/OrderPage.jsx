@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
+import PropTypes from 'prop-types'
 import Header from '../components/Header'
 import MenuCard from '../components/MenuCard'
 import ShoppingCart from '../components/ShoppingCart'
+import Toast from '../components/Toast'
+import useToast from '../hooks/useToast'
+import { QUANTITY_LIMITS } from '../constants/orderConstants'
 import './OrderPage.css'
 
 // 임시 메뉴 데이터
@@ -78,11 +82,17 @@ function OrderPage({ onNavigate, onCreateOrder }) {
   const [menus, setMenus] = useState([])
   const [cartItems, setCartItems] = useState([])
   const [nextCartItemId, setNextCartItemId] = useState(1)
+  const { toast, showToast, hideToast } = useToast()
 
   useEffect(() => {
     // 임시로 mockMenus 사용 (나중에 API로 교체)
-    setMenus(mockMenus)
-  }, [])
+    try {
+      setMenus(mockMenus)
+    } catch (error) {
+      console.error('메뉴 로딩 중 오류 발생:', error)
+      showToast('메뉴를 불러오는 중 오류가 발생했습니다.', 'error')
+    }
+  }, [showToast])
 
   const handleAddToCart = (item) => {
     setCartItems(prev => {
@@ -117,14 +127,20 @@ function OrderPage({ onNavigate, onCreateOrder }) {
   }
 
   const handleUpdateQuantity = (cartItemId, newQuantity) => {
+    // 최소값 미만이면 삭제
     if (newQuantity < 1) {
       handleRemoveFromCart(cartItemId)
       return
     }
+    
+    // 최대값 제한 (99개)
+    const MAX_QUANTITY = QUANTITY_LIMITS.MAX
+    const validatedQuantity = Math.min(newQuantity, MAX_QUANTITY)
+    
     setCartItems(prev =>
       prev.map(item =>
         item.cartItemId === cartItemId
-          ? { ...item, quantity: newQuantity }
+          ? { ...item, quantity: validatedQuantity }
           : item
       )
     )
@@ -132,33 +148,38 @@ function OrderPage({ onNavigate, onCreateOrder }) {
 
   const handleOrder = () => {
     if (cartItems.length === 0) {
-      alert('장바구니가 비어있습니다.')
+      showToast('장바구니가 비어있습니다.', 'warning')
       return
     }
 
-    // 주문 데이터 생성
-    const totalAmount = cartItems.reduce((total, item) => {
-      const itemPrice = item.basePrice + item.selectedOptions.reduce((sum, opt) => sum + opt.price, 0)
-      return total + (itemPrice * item.quantity)
-    }, 0)
+    try {
+      // 주문 데이터 생성
+      const totalAmount = cartItems.reduce((total, item) => {
+        const itemPrice = item.basePrice + item.selectedOptions.reduce((sum, opt) => sum + opt.price, 0)
+        return total + (itemPrice * item.quantity)
+      }, 0)
 
-    const orderData = {
-      items: cartItems.map(item => ({
-        menuName: item.menuName,
-        quantity: item.quantity,
-        selectedOptions: item.selectedOptions
-      })),
-      totalAmount: totalAmount,
-      orderTime: new Date().toISOString()
+      const orderData = {
+        items: cartItems.map(item => ({
+          menuName: item.menuName,
+          quantity: item.quantity,
+          selectedOptions: item.selectedOptions
+        })),
+        totalAmount: totalAmount,
+        orderTime: new Date().toISOString()
+      }
+
+      // App 컴포넌트의 주문 생성 함수 호출
+      onCreateOrder(orderData)
+      
+      showToast('주문이 완료되었습니다!', 'success')
+      
+      // 장바구니 초기화
+      setCartItems([])
+    } catch (error) {
+      console.error('주문 처리 중 오류 발생:', error)
+      showToast('주문 처리 중 오류가 발생했습니다.', 'error')
     }
-
-    // App 컴포넌트의 주문 생성 함수 호출
-    onCreateOrder(orderData)
-    
-    alert('주문이 완료되었습니다!')
-    
-    // 장바구니 초기화
-    setCartItems([])
   }
 
   return (
@@ -182,11 +203,25 @@ function OrderPage({ onNavigate, onCreateOrder }) {
             onOrder={handleOrder}
             onRemoveItem={handleRemoveFromCart}
             onUpdateQuantity={handleUpdateQuantity}
+            onShowToast={showToast}
           />
         </div>
       </main>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          onClose={hideToast}
+        />
+      )}
     </div>
   )
+}
+
+OrderPage.propTypes = {
+  onNavigate: PropTypes.func.isRequired,
+  onCreateOrder: PropTypes.func.isRequired
 }
 
 export default OrderPage

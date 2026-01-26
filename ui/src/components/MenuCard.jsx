@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PropTypes from 'prop-types'
 import './MenuCard.css'
 
 function MenuCard({ menu, onAddToCart }) {
@@ -55,6 +56,7 @@ function MenuCard({ menu, onAddToCart }) {
               type="checkbox"
               checked={selectedOptions.some(opt => opt.name === option.name)}
               onChange={() => handleOptionToggle(option)}
+              aria-label={`${menu.name} ${option.name} 옵션`}
             />
             <span>
               {option.name} ({option.price > 0 ? `+${option.price.toLocaleString()}원` : '+0원'})
@@ -62,11 +64,28 @@ function MenuCard({ menu, onAddToCart }) {
           </label>
         ))}
       </div>
-      <button className="add-to-cart-btn" onClick={handleAddToCart}>
+      <button className="add-to-cart-btn" onClick={handleAddToCart} aria-label={`${menu.name} 장바구니에 추가`}>
         담기
       </button>
     </div>
   )
+}
+
+MenuCard.propTypes = {
+  menu: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    name: PropTypes.string.isRequired,
+    price: PropTypes.number.isRequired,
+    description: PropTypes.string.isRequired,
+    image: PropTypes.string,
+    options: PropTypes.arrayOf(
+      PropTypes.shape({
+        name: PropTypes.string.isRequired,
+        price: PropTypes.number.isRequired
+      })
+    ).isRequired
+  }).isRequired,
+  onAddToCart: PropTypes.func.isRequired
 }
 
 export default MenuCard

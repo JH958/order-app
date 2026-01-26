@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import OrderPage from './pages/OrderPage'
 import AdminPage from './pages/AdminPage'
+import ErrorBoundary from './components/ErrorBoundary'
+import { ORDER_STATUS } from './constants/orderConstants'
 import './App.css'
 
 function App() {
@@ -13,43 +15,55 @@ function App() {
   }
 
   const handleCreateOrder = (orderData) => {
-    const newOrder = {
-      orderId: nextOrderId,
-      items: orderData.items,
-      totalAmount: orderData.totalAmount,
-      orderTime: orderData.orderTime,
-      status: '주문 접수'
+    try {
+      const newOrder = {
+        orderId: nextOrderId,
+        items: orderData.items,
+        totalAmount: orderData.totalAmount,
+        orderTime: orderData.orderTime,
+        status: ORDER_STATUS.PENDING
+      }
+      setOrders(prev => [newOrder, ...prev]) // 최신 주문이 위에 오도록
+      setNextOrderId(prev => prev + 1)
+    } catch (error) {
+      console.error('주문 생성 중 오류 발생:', error)
+      throw error
     }
-    setOrders(prev => [newOrder, ...prev]) // 최신 주문이 위에 오도록
-    setNextOrderId(prev => prev + 1)
   }
 
   const handleUpdateOrderStatus = (orderId, newStatus) => {
-    setOrders(prev =>
-      prev.map(order =>
-        order.orderId === orderId
-          ? { ...order, status: newStatus }
-          : order
+    try {
+      setOrders(prev =>
+        prev.map(order =>
+          order.orderId === orderId
+            ? { ...order, status: newStatus }
+            : order
+        )
       )
-    )
+    } catch (error) {
+      console.error('주문 상태 업데이트 중 오류 발생:', error)
+      throw error
+    }
   }
 
   return (
-    <div className="App">
-      {currentPage === 'order' && (
-        <OrderPage 
-          onNavigate={handleNavigate} 
-          onCreateOrder={handleCreateOrder}
-        />
-      )}
-      {currentPage === 'admin' && (
-        <AdminPage 
-          onNavigate={handleNavigate}
-          orders={orders}
-          onUpdateOrderStatus={handleUpdateOrderStatus}
-        />
-      )}
-    </div>
+    <ErrorBoundary>
+      <div className="App">
+        {currentPage === 'order' && (
+          <OrderPage 
+            onNavigate={handleNavigate} 
+            onCreateOrder={handleCreateOrder}
+          />
+        )}
+        {currentPage === 'admin' && (
+          <AdminPage 
+            onNavigate={handleNavigate}
+            orders={orders}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+          />
+        )}
+      </div>
+    </ErrorBoundary>
   )
 }
 
