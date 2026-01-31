@@ -10,7 +10,9 @@
     "test:db": "node scripts/test-db-connection.js",
     "create:db": "node scripts/create-database.js",
     "create:schema": "node scripts/create-schema.js",
-    "seed": "node scripts/seed-data.js"
+    "seed": "node scripts/seed-data.js",
+    "update:images": "node scripts/update-menu-images.js",
+    "update:images:auto": "node scripts/update-menu-images-auto.js"
   },
   "keywords": [
     "express",
