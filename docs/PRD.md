@@ -415,3 +415,522 @@
 - 재고 수량은 음수가 될 수 없음
 - 주문 상태는 정의된 값만 허용
 - 재고 변경 시 변경 이력 기록 (옵션)
+
+## 6. 백엔드 개발
+
+### 6.1 데이터 모델
+
+#### 6.1.1 Menus (메뉴)
+메뉴 정보를 저장하는 테이블
+
+**필드:**
+- `id` (INTEGER, PRIMARY KEY, AUTO_INCREMENT): 메뉴 고유 ID
+- `name` (VARCHAR): 커피 메뉴 이름
+- `description` (TEXT): 메뉴 설명
+- `price` (INTEGER): 기본 가격 (원 단위)
+- `image` (VARCHAR, NULLABLE): 이미지 URL (옵셔널)
+- `stock` (INTEGER, DEFAULT 0): 재고 수량
+- `created_at` (TIMESTAMP): 생성 일시
+- `updated_at` (TIMESTAMP): 수정 일시
+
+**제약 조건:**
+- `name`: NOT NULL, UNIQUE
+- `price`: NOT NULL, >= 0
+- `stock`: NOT NULL, >= 0
+
+#### 6.1.2 Options (옵션)
+메뉴에 추가할 수 있는 옵션 정보를 저장하는 테이블
+
+**필드:**
+- `id` (INTEGER, PRIMARY KEY, AUTO_INCREMENT): 옵션 고유 ID
+- `name` (VARCHAR): 옵션 이름 (예: "샷 추가", "시럽 추가")
+- `price` (INTEGER): 옵션 추가 가격 (원 단위)
+- `menu_id` (INTEGER, FOREIGN KEY): 연결된 메뉴 ID (Menus 테이블 참조)
+- `created_at` (TIMESTAMP): 생성 일시
+- `updated_at` (TIMESTAMP): 수정 일시
+
+**제약 조건:**
+- `name`: NOT NULL
+- `price`: NOT NULL, >= 0
+- `menu_id`: NOT NULL, FOREIGN KEY REFERENCES Menus(id) ON DELETE CASCADE
+
+**관계:**
+- 하나의 메뉴는 여러 개의 옵션을 가질 수 있음 (1:N 관계)
+
+#### 6.1.3 Orders (주문)
+주문 정보를 저장하는 테이블
+
+**필드:**
+- `id` (INTEGER, PRIMARY KEY, AUTO_INCREMENT): 주문 고유 ID
+- `order_time` (TIMESTAMP): 주문 일시
+- `total_amount` (INTEGER): 총 주문 금액 (원 단위)
+- `status` (VARCHAR): 주문 상태 (기본값: "주문 접수")
+  - 가능한 값: "주문 접수", "제조 중", "제조 완료", "픽업 완료"
+- `created_at` (TIMESTAMP): 생성 일시
+- `updated_at` (TIMESTAMP): 수정 일시
+
+**제약 조건:**
+- `order_time`: NOT NULL
+- `total_amount`: NOT NULL, >= 0
+- `status`: NOT NULL, CHECK (status IN ('주문 접수', '제조 중', '제조 완료', '픽업 완료'))
+
+#### 6.1.4 OrderItems (주문 아이템)
+주문에 포함된 각 메뉴 아이템 정보를 저장하는 테이블
+
+**필드:**
+- `id` (INTEGER, PRIMARY KEY, AUTO_INCREMENT): 주문 아이템 고유 ID
+- `order_id` (INTEGER, FOREIGN KEY): 주문 ID (Orders 테이블 참조)
+- `menu_id` (INTEGER, FOREIGN KEY): 메뉴 ID (Menus 테이블 참조)
+- `quantity` (INTEGER): 수량
+- `item_price` (INTEGER): 아이템 단가 (메뉴 가격 + 옵션 가격의 합)
+- `total_price` (INTEGER): 아이템 총 가격 (단가 × 수량)
+- `created_at` (TIMESTAMP): 생성 일시
+
+**제약 조건:**
+- `order_id`: NOT NULL, FOREIGN KEY REFERENCES Orders(id) ON DELETE CASCADE
+- `menu_id`: NOT NULL, FOREIGN KEY REFERENCES Menus(id)
+- `quantity`: NOT NULL, > 0
+- `item_price`: NOT NULL, >= 0
+- `total_price`: NOT NULL, >= 0
+
+**관계:**
+- 하나의 주문은 여러 개의 주문 아이템을 가질 수 있음 (1:N 관계)
+
+#### 6.1.5 OrderItemOptions (주문 아이템 옵션)
+주문 아이템에 선택된 옵션 정보를 저장하는 테이블
+
+**필드:**
+- `id` (INTEGER, PRIMARY KEY, AUTO_INCREMENT): 주문 아이템 옵션 고유 ID
+- `order_item_id` (INTEGER, FOREIGN KEY): 주문 아이템 ID (OrderItems 테이블 참조)
+- `option_id` (INTEGER, FOREIGN KEY): 옵션 ID (Options 테이블 참조)
+- `option_price` (INTEGER): 옵션 가격 (주문 시점의 가격 저장)
+- `created_at` (TIMESTAMP): 생성 일시
+
+**제약 조건:**
+- `order_item_id`: NOT NULL, FOREIGN KEY REFERENCES OrderItems(id) ON DELETE CASCADE
+- `option_id`: NOT NULL, FOREIGN KEY REFERENCES Options(id)
+- `option_price`: NOT NULL, >= 0
+
+**관계:**
+- 하나의 주문 아이템은 여러 개의 옵션을 가질 수 있음 (1:N 관계)
+
+### 6.2 사용자 흐름 및 데이터 흐름
+
+#### 6.2.1 메뉴 조회 흐름
+1. **프런트엔드 요청**: 주문하기 화면 진입 시 `GET /api/menus` 호출
+2. **백엔드 처리**: 
+   - 데이터베이스에서 Menus 테이블 조회
+   - 각 메뉴에 연결된 Options 테이블 조인하여 조회
+   - 재고 수량(stock) 포함하여 응답
+3. **프런트엔드 표시**: 
+   - 메뉴 카드에 메뉴 정보 표시 (이름, 가격, 설명, 이미지, 옵션)
+   - 관리자 화면에 재고 수량 표시
+
+#### 6.2.2 주문 생성 흐름
+1. **사용자 액션**: 
+   - 주문하기 화면에서 메뉴 선택 및 옵션 선택
+   - 장바구니에 아이템 추가
+   - "주문하기" 버튼 클릭
+2. **프런트엔드 요청**: `POST /api/orders` 호출
+   - 요청 바디: 주문 정보 (주문 아이템 배열, 총 금액)
+3. **백엔드 처리**:
+   - Orders 테이블에 주문 레코드 생성 (status: "주문 접수")
+   - OrderItems 테이블에 주문 아이템 레코드들 생성
+   - OrderItemOptions 테이블에 선택된 옵션 레코드들 생성
+   - 주문된 메뉴의 재고 수량 감소 (Menus 테이블 업데이트)
+   - 트랜잭션으로 처리하여 모든 작업이 성공하거나 모두 롤백
+4. **응답**: 생성된 주문 정보 반환 (주문 ID 포함)
+5. **프런트엔드 처리**: 주문 완료 메시지 표시 및 장바구니 초기화
+
+#### 6.2.3 주문 조회 흐름
+1. **프런트엔드 요청**: 관리자 화면 진입 시 `GET /api/orders` 호출
+2. **백엔드 처리**:
+   - Orders 테이블 조회
+   - OrderItems 테이블 조인하여 주문 아이템 정보 포함
+   - OrderItemOptions 테이블 조인하여 선택된 옵션 정보 포함
+   - Menus 테이블 조인하여 메뉴 정보 포함
+   - 최신 주문이 먼저 오도록 정렬 (ORDER BY order_time DESC)
+3. **프런트엔드 표시**: 주문 현황에 주문 목록 표시
+
+#### 6.2.4 주문 상태 변경 흐름
+1. **사용자 액션**: 관리자가 주문 상태 버튼 클릭
+   - "제조 시작" → "제조 중"
+   - "제조 중" → "제조 완료"
+   - "제조 완료" → "픽업 완료"
+2. **프런트엔드 요청**: `PUT /api/orders/:orderId/status` 호출
+   - 요청 바디: `{ status: "제조 중" }` (또는 다음 상태)
+3. **백엔드 처리**:
+   - Orders 테이블에서 해당 주문 조회
+   - 주문 상태 검증 (순차적 변경만 허용)
+   - 주문 상태 업데이트
+   - updated_at 타임스탬프 갱신
+4. **응답**: 업데이트된 주문 정보 반환
+5. **프런트엔드 처리**: 주문 현황 화면 업데이트
+
+#### 6.2.5 재고 관리 흐름
+1. **사용자 액션**: 관리자가 재고 증감 버튼 클릭
+2. **프런트엔드 요청**: `PUT /api/inventory/:menuId` 호출
+   - 요청 바디: `{ stock: 11 }` (새로운 재고 수량)
+3. **백엔드 처리**:
+   - Menus 테이블에서 해당 메뉴 조회
+   - 재고 수량 검증 (>= 0)
+   - 재고 수량 업데이트
+   - updated_at 타임스탬프 갱신
+4. **응답**: 업데이트된 재고 정보 반환
+5. **프런트엔드 처리**: 재고 현황 화면 업데이트
+
+### 6.3 API 설계
+
+#### 6.3.1 메뉴 관련 API
+
+**GET /api/menus**
+- **설명**: 모든 메뉴 목록 조회 (옵션 정보 포함)
+- **요청**: 없음
+- **응답**:
+  ```json
+  [
+    {
+      "id": 1,
+      "name": "아메리카노(ICE)",
+      "description": "시원하고 깔끔한 아이스 아메리카노",
+      "price": 4000,
+      "image": null,
+      "stock": 10,
+      "options": [
+        {
+          "id": 1,
+          "name": "샷 추가",
+          "price": 500,
+          "menu_id": 1
+        },
+        {
+          "id": 2,
+          "name": "시럽 추가",
+          "price": 0,
+          "menu_id": 1
+        }
+      ]
+    }
+  ]
+  ```
+- **에러 처리**:
+  - 500: 서버 오류 시 "메뉴를 불러올 수 없습니다" 메시지
+
+#### 6.3.2 주문 관련 API
+
+**POST /api/orders**
+- **설명**: 새 주문 생성 및 재고 자동 감소
+- **요청 바디**:
+  ```json
+  {
+    "items": [
+      {
+        "menuId": 1,
+        "quantity": 2,
+        "selectedOptions": [
+          {
+            "optionId": 1,
+            "name": "샷 추가",
+            "price": 500
+          }
+        ]
+      }
+    ],
+    "totalAmount": 9000
+  }
+  ```
+- **응답**:
+  ```json
+  {
+    "orderId": 1,
+    "orderTime": "2024-01-26T21:30:00.000Z",
+    "totalAmount": 9000,
+    "status": "주문 접수",
+    "items": [
+      {
+        "menuName": "아메리카노(ICE)",
+        "quantity": 2,
+        "selectedOptions": [
+          {
+            "name": "샷 추가",
+            "price": 500
+          }
+        ],
+        "itemPrice": 4500,
+        "totalPrice": 9000
+      }
+    ]
+  }
+  ```
+- **비즈니스 로직**:
+  - 주문 생성 시 해당 메뉴의 재고 자동 감소
+  - 재고가 부족한 경우 주문 실패 처리
+  - 트랜잭션으로 처리하여 원자성 보장
+- **에러 처리**:
+  - 400: 잘못된 요청 데이터
+  - 409: 재고 부족으로 인한 주문 실패
+  - 500: 서버 오류
+
+**GET /api/orders**
+- **설명**: 모든 주문 목록 조회 (주문 아이템 및 옵션 정보 포함)
+- **쿼리 파라미터** (옵션):
+  - `status`: 주문 상태로 필터링 (예: `?status=주문 접수`)
+- **응답**:
+  ```json
+  [
+    {
+      "orderId": 1,
+      "orderTime": "2024-01-26T21:30:00.000Z",
+      "totalAmount": 9000,
+      "status": "주문 접수",
+      "items": [
+        {
+          "menuName": "아메리카노(ICE)",
+          "quantity": 2,
+          "selectedOptions": [
+            {
+              "name": "샷 추가",
+              "price": 500
+            }
+          ],
+          "itemPrice": 4500,
+          "totalPrice": 9000
+        }
+      ]
+    }
+  ]
+  ```
+- **정렬**: 최신 주문이 먼저 오도록 `ORDER BY order_time DESC`
+- **에러 처리**:
+  - 500: 서버 오류 시 "주문 정보를 불러올 수 없습니다" 메시지
+
+**GET /api/orders/:orderId**
+- **설명**: 특정 주문 정보 조회
+- **URL 파라미터**:
+  - `orderId`: 주문 ID
+- **응답**: GET /api/orders와 동일한 형식 (단일 객체)
+- **에러 처리**:
+  - 404: 주문을 찾을 수 없음
+  - 500: 서버 오류
+
+**PUT /api/orders/:orderId/status**
+- **설명**: 주문 상태 업데이트
+- **URL 파라미터**:
+  - `orderId`: 주문 ID
+- **요청 바디**:
+  ```json
+  {
+    "status": "제조 중"
+  }
+  ```
+- **응답**: 업데이트된 주문 정보 (GET /api/orders/:orderId와 동일한 형식)
+- **비즈니스 로직**:
+  - 주문 상태는 순차적으로만 변경 가능
+  - "주문 접수" → "제조 중" → "제조 완료" → "픽업 완료"
+  - 역행 불가
+- **에러 처리**:
+  - 400: 잘못된 상태 값 또는 순차적이지 않은 상태 변경
+  - 404: 주문을 찾을 수 없음
+  - 500: 서버 오류
+
+#### 6.3.3 재고 관련 API
+
+**GET /api/inventory**
+- **설명**: 모든 메뉴의 재고 정보 조회
+- **요청**: 없음
+- **응답**:
+  ```json
+  [
+    {
+      "menuId": 1,
+      "menuName": "아메리카노 (ICE)",
+      "stock": 10
+    },
+    {
+      "menuId": 2,
+      "menuName": "아메리카노 (HOT)",
+      "stock": 10
+    },
+    {
+      "menuId": 3,
+      "menuName": "카페라떼",
+      "stock": 10
+    }
+  ]
+  ```
+- **에러 처리**:
+  - 500: 서버 오류 시 "재고 정보를 불러올 수 없습니다" 메시지
+
+**PUT /api/inventory/:menuId**
+- **설명**: 특정 메뉴의 재고 수량 업데이트
+- **URL 파라미터**:
+  - `menuId`: 메뉴 ID
+- **요청 바디**:
+  ```json
+  {
+    "stock": 11
+  }
+  ```
+- **응답**: 업데이트된 재고 정보
+  ```json
+  {
+    "menuId": 1,
+    "menuName": "아메리카노 (ICE)",
+    "stock": 11
+  }
+  ```
+- **비즈니스 로직**:
+  - 재고 수량은 0 이상이어야 함
+  - 음수 값 입력 시 오류 반환
+- **에러 처리**:
+  - 400: 잘못된 재고 수량 (음수 등)
+  - 404: 메뉴를 찾을 수 없음
+  - 500: 서버 오류
+
+#### 6.3.4 대시보드 통계 API
+
+**GET /api/dashboard/stats**
+- **설명**: 관리자 대시보드 통계 데이터 조회
+- **요청**: 없음
+- **응답**:
+  ```json
+  {
+    "totalOrders": 10,
+    "pendingOrders": 3,
+    "inProgressOrders": 2,
+    "completedOrders": 5
+  }
+  ```
+- **비즈니스 로직**:
+  - Orders 테이블에서 상태별로 그룹화하여 집계
+  - 실시간으로 계산
+- **에러 처리**:
+  - 500: 서버 오류
+
+### 6.4 데이터베이스 스키마 설계
+
+#### 6.4.1 테이블 관계도
+```
+Menus (1) ──< (N) Options
+  │
+  │ (1)
+  │
+  │ (N)
+OrderItems ──< (N) OrderItemOptions
+  │
+  │ (N)
+  │
+  │ (1)
+Orders
+```
+
+#### 6.4.2 인덱스 설계
+- **Menus 테이블**:
+  - `id`: PRIMARY KEY (자동 인덱스)
+  - `name`: UNIQUE INDEX (메뉴명 중복 방지)
+  
+- **Options 테이블**:
+  - `id`: PRIMARY KEY (자동 인덱스)
+  - `menu_id`: INDEX (메뉴별 옵션 조회 성능 향상)
+  
+- **Orders 테이블**:
+  - `id`: PRIMARY KEY (자동 인덱스)
+  - `order_time`: INDEX (시간순 정렬 성능 향상)
+  - `status`: INDEX (상태별 필터링 성능 향상)
+  
+- **OrderItems 테이블**:
+  - `id`: PRIMARY KEY (자동 인덱스)
+  - `order_id`: INDEX (주문별 아이템 조회 성능 향상)
+  - `menu_id`: INDEX (메뉴별 주문 조회 성능 향상)
+  
+- **OrderItemOptions 테이블**:
+  - `id`: PRIMARY KEY (자동 인덱스)
+  - `order_item_id`: INDEX (주문 아이템별 옵션 조회 성능 향상)
+
+### 6.5 비즈니스 로직 및 제약 조건
+
+#### 6.5.1 주문 생성 시 재고 관리
+- 주문 생성 시 주문된 메뉴의 재고를 자동으로 감소
+- 재고가 부족한 경우 주문 실패 처리
+- 트랜잭션으로 처리하여 주문 생성과 재고 감소가 원자적으로 처리
+- 재고가 0인 메뉴는 주문 불가 (옵션: 프런트엔드에서 주문 버튼 비활성화)
+
+#### 6.5.2 주문 상태 관리
+- 주문 상태는 순차적으로만 변경 가능
+  - "주문 접수" → "제조 중" → "제조 완료" → "픽업 완료"
+- 역행 불가 (예: "제조 중"에서 "주문 접수"로 변경 불가)
+- 각 상태 변경 시 `updated_at` 타임스탬프 갱신
+
+#### 6.5.3 데이터 무결성
+- 외래 키 제약 조건으로 참조 무결성 보장
+- CASCADE DELETE: 주문 삭제 시 관련 주문 아이템 및 옵션도 함께 삭제
+- CHECK 제약 조건으로 주문 상태 값 검증
+- NOT NULL 제약 조건으로 필수 필드 보장
+
+#### 6.5.4 트랜잭션 처리
+- 주문 생성 시 다음 작업들을 하나의 트랜잭션으로 처리:
+  1. Orders 테이블에 주문 레코드 삭입
+  2. OrderItems 테이블에 주문 아이템 레코드들 삽입
+  3. OrderItemOptions 테이블에 옵션 레코드들 삽입
+  4. Menus 테이블의 재고 수량 업데이트
+- 하나라도 실패하면 전체 롤백
+
+### 6.6 에러 처리 및 검증
+
+#### 6.6.1 입력 데이터 검증
+- 주문 생성 시:
+  - 메뉴 ID 유효성 검증
+  - 수량이 1 이상인지 검증
+  - 옵션 ID가 해당 메뉴에 속하는지 검증
+  - 총 금액이 올바르게 계산되었는지 검증
+- 재고 업데이트 시:
+  - 재고 수량이 0 이상인지 검증
+- 주문 상태 변경 시:
+  - 상태 값이 유효한지 검증
+  - 순차적 변경인지 검증
+
+#### 6.6.2 에러 응답 형식
+```json
+{
+  "error": true,
+  "message": "에러 메시지",
+  "code": "ERROR_CODE"
+}
+```
+
+#### 6.6.3 HTTP 상태 코드
+- **200 OK**: 성공
+- **201 Created**: 리소스 생성 성공
+- **400 Bad Request**: 잘못된 요청 데이터
+- **404 Not Found**: 리소스를 찾을 수 없음
+- **409 Conflict**: 재고 부족 등 비즈니스 로직 위반
+- **500 Internal Server Error**: 서버 오류
+
+### 6.7 보안 고려사항
+
+#### 6.7.1 입력 데이터 검증
+- SQL Injection 방지를 위한 파라미터화된 쿼리 사용
+- XSS 방지를 위한 입력 데이터 검증 및 이스케이프 처리
+
+#### 6.7.2 CORS 설정
+- 프런트엔드 도메인만 허용하도록 CORS 설정
+- 개발 환경과 프로덕션 환경별로 다른 설정
+
+#### 6.7.3 데이터 검증
+- 모든 입력 데이터에 대한 유효성 검증
+- 타입 검증 및 범위 검증
+
+### 6.8 성능 최적화
+
+#### 6.8.1 데이터베이스 쿼리 최적화
+- 필요한 컬럼만 SELECT하여 데이터 전송량 최소화
+- JOIN 최적화를 통한 쿼리 성능 향상
+- 인덱스를 활용한 조회 성능 향상
+
+#### 6.8.2 캐싱 전략 (선택 사항)
+- 메뉴 목록은 자주 변경되지 않으므로 캐싱 고려
+- 재고 정보는 실시간성이 중요하므로 캐싱 제한적 사용
+
+#### 6.8.3 페이지네이션 (선택 사항)
+- 주문 목록이 많아질 경우를 대비한 페이지네이션 구현
+- 기본값: 한 페이지당 20개 주문
