@@ -84,26 +84,28 @@ function OrderStatus({ orders, onUpdateOrderStatus }) {
       {filteredOrders.length === 0 ? (
         <p className="empty-orders">주문이 없습니다.</p>
       ) : (
-        <div className="order-list">
-          {filteredOrders.map((order) => (
-            <div key={order.orderId} className="order-item">
-              <div className="order-info">
-                <div className="order-time">{formatDate(order.orderTime)}</div>
-                <div className="order-details">
-                  <span className="order-items">{formatOrderItems(order.items)}</span>
-                  <span className="order-amount">{order.totalAmount.toLocaleString()}원</span>
+        <div className="order-list-container">
+          <div className="order-list">
+            {filteredOrders.map((order) => (
+              <div key={order.orderId} className="order-item">
+                <div className="order-info">
+                  <div className="order-time">{formatDate(order.orderTime)}</div>
+                  <div className="order-details">
+                    <span className="order-items">{formatOrderItems(order.items)}</span>
+                    <span className="order-amount">{order.totalAmount.toLocaleString()}원</span>
+                  </div>
                 </div>
+                <button
+                  className={getStatusButtonClass(order.status)}
+                  onClick={() => handleStatusChange(order.orderId, order.status)}
+                  disabled={order.status === ORDER_STATUS.PICKED_UP}
+                  aria-label={`${getStatusButtonText(order.status)} 버튼`}
+                >
+                  {getStatusButtonText(order.status)}
+                </button>
               </div>
-              <button
-                className={getStatusButtonClass(order.status)}
-                onClick={() => handleStatusChange(order.orderId, order.status)}
-                disabled={order.status === ORDER_STATUS.PICKED_UP}
-                aria-label={`${getStatusButtonText(order.status)} 버튼`}
-              >
-                {getStatusButtonText(order.status)}
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>

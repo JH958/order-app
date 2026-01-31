@@ -1,48 +1,55 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import OrderPage from './pages/OrderPage'
 import AdminPage from './pages/AdminPage'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ORDER_STATUS } from './constants/orderConstants'
+import { api } from './utils/api'
 import './App.css'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('order')
   const [orders, setOrders] = useState([])
-  const [nextOrderId, setNextOrderId] = useState(1)
+
+  // 주문 목록 로드
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        const ordersData = await api.getOrders()
+        setOrders(ordersData)
+      } catch (error) {
+        console.error('주문 목록 로딩 중 오류 발생:', error)
+      }
+    }
+    loadOrders()
+
+    // 관리자 페이지일 때 주기적으로 새로고침 (5초마다)
+    if (currentPage === 'admin') {
+      const interval = setInterval(loadOrders, 5000)
+      return () => clearInterval(interval)
+    }
+  }, [currentPage])
 
   const handleNavigate = (page) => {
     setCurrentPage(page)
   }
 
-  const handleCreateOrder = (orderData) => {
+  const handleCreateOrder = async (orderData) => {
     try {
-      const newOrder = {
-        orderId: nextOrderId,
-        items: orderData.items,
-        totalAmount: orderData.totalAmount,
-        orderTime: orderData.orderTime,
-        status: ORDER_STATUS.PENDING
-      }
-      setOrders(prev => [newOrder, ...prev]) // 최신 주문이 위에 오도록
-      setNextOrderId(prev => prev + 1)
+      // API에서 이미 주문이 생성되었으므로 주문 목록 새로고침
+      const ordersData = await api.getOrders()
+      setOrders(ordersData)
     } catch (error) {
-      console.error('주문 생성 중 오류 발생:', error)
-      throw error
+      console.error('주문 목록 새로고침 중 오류 발생:', error)
     }
   }
 
-  const handleUpdateOrderStatus = (orderId, newStatus) => {
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
     try {
-      setOrders(prev =>
-        prev.map(order =>
-          order.orderId === orderId
-            ? { ...order, status: newStatus }
-            : order
-        )
-      )
+      // API에서 이미 상태가 업데이트되었으므로 주문 목록 새로고침
+      const ordersData = await api.getOrders()
+      setOrders(ordersData)
     } catch (error) {
-      console.error('주문 상태 업데이트 중 오류 발생:', error)
-      throw error
+      console.error('주문 목록 새로고침 중 오류 발생:', error)
     }
   }
 

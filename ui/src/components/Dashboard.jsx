@@ -21,6 +21,10 @@ function Dashboard({ stats }) {
         <span className="stat-item">
           제조 완료 <strong>{stats.completedOrders}</strong>
         </span>
+        <span className="stat-divider">/</span>
+        <span className="stat-item">
+          픽업 완료 <strong>{stats.pickedUpOrders || 0}</strong>
+        </span>
       </div>
     </div>
   )
@@ -31,7 +35,8 @@ Dashboard.propTypes = {
     totalOrders: PropTypes.number.isRequired,
     pendingOrders: PropTypes.number.isRequired,
     inProgressOrders: PropTypes.number.isRequired,
-    completedOrders: PropTypes.number.isRequired
+    completedOrders: PropTypes.number.isRequired,
+    pickedUpOrders: PropTypes.number
   }).isRequired
 }
 

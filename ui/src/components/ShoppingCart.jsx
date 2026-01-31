@@ -104,7 +104,11 @@ function ShoppingCart({ cartItems, onOrder, onRemoveItem, onUpdateQuantity, onSh
                 return (
                   <div key={item.cartItemId || item.menuId} className="cart-item">
                     <div className="item-info">
-                      <span className="item-name">{item.menuName}{formatOptions(item.selectedOptions)}</span>
+                      <span className="item-name">
+                        {item.menuName}
+                        {item.temperature ? `(${item.temperature}, ${item.size || 'M'})` : item.size ? `(${item.size})` : ''}
+                        {formatOptions(item.selectedOptions)}
+                      </span>
                       <div className="quantity-controls">
                         <button 
                           className="quantity-btn decrease-btn"

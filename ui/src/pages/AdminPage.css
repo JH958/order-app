@@ -1,16 +1,34 @@
 .admin-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: var(--color-gray-light);
   display: flex;
   flex-direction: column;
 }
 
 .admin-content {
-  max-width: 1200px;
+  max-width: 1400px;
   width: 100%;
   margin: 0 auto;
   padding: 2rem;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.admin-content > .dashboard {
+  margin-bottom: 0;
+}
+
+.admin-content > .order-status {
+  margin-bottom: 0;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: var(--color-neutral-2);
+  font-size: 1rem;
 }
 
 @media (max-width: 768px) {

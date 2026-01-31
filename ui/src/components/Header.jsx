@@ -5,7 +5,7 @@ function Header({ currentPage, onNavigate }) {
   return (
     <header className="header">
       <div className="header-container">
-        <h1 className="logo">COZY</h1>
+        <h1 className="logo">InCafe</h1>
         <nav className="nav-tabs">
           <button
             className={`nav-tab ${currentPage === 'order' ? 'active' : ''}`}

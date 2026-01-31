@@ -4,6 +4,10 @@ import dotenv from 'dotenv';
 import { requestLogger } from './middleware/requestLogger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import pool from './config/database.js';
+import menuRoutes from './routes/menuRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+import inventoryRoutes from './routes/inventoryRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 
 // 환경 변수 로드
 dotenv.config();
@@ -31,11 +35,11 @@ app.get('/', (req, res) => {
   });
 });
 
-// API 라우트 (추후 추가 예정)
-// app.use('/api/menus', menuRoutes);
-// app.use('/api/orders', orderRoutes);
-// app.use('/api/inventory', inventoryRoutes);
-// app.use('/api/dashboard', dashboardRoutes);
+// API 라우트
+app.use('/api/menus', menuRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // 404 핸들러
 app.use(notFoundHandler);

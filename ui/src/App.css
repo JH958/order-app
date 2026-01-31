@@ -1,6 +1,7 @@
 .App {
   width: 100%;
   min-height: 100vh;
+  background-color: var(--color-gray-light);
 }
 
 .admin-placeholder {
@@ -15,27 +16,32 @@
 .admin-placeholder h1 {
   font-size: 2rem;
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--color-neutral-4);
+  font-family: 'Pretendard', sans-serif;
 }
 
 .admin-placeholder p {
   font-size: 1.1rem;
-  color: #666;
+  color: var(--color-neutral-2);
   margin-bottom: 2rem;
+  font-family: 'Pretendard', sans-serif;
 }
 
 .admin-placeholder button {
   padding: 0.75rem 1.5rem;
-  background-color: #2196F3;
-  color: #fff;
+  background-color: var(--color-primary);
+  color: var(--color-white);
   border: none;
-  border-radius: 4px;
+  border-radius: 12px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  font-family: 'Pretendard', sans-serif;
 }
 
 .admin-placeholder button:hover {
-  background-color: #1976D2;
+  background-color: #7A1526;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(151, 27, 47, 0.3);
 }
