@@ -11,11 +11,12 @@ let pool;
 
 if (process.env.DATABASE_URL) {
   // DATABASE_URL이 있으면 SSL 연결 사용 (Render.com)
+  // Render.com의 PostgreSQL은 항상 SSL을 요구함
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? {
+    ssl: {
       rejectUnauthorized: false
-    } : false
+    }
   });
 } else {
   // 개별 환경 변수 사용 (로컬 개발)

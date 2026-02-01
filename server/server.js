@@ -19,10 +19,17 @@ const PORT = process.env.PORT || 3000;
 // CORS 설정: 프로덕션에서는 프론트엔드 도메인만 허용
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
+    ? (process.env.FRONTEND_URL || '*') // FRONTEND_URL이 없으면 모든 origin 허용
     : '*', // 개발 환경에서는 모든 origin 허용
   credentials: true
 };
+
+// CORS 설정 로깅 (디버깅용)
+console.log('CORS 설정:');
+console.log('  NODE_ENV:', process.env.NODE_ENV);
+console.log('  FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('  Allowed Origin:', corsOptions.origin);
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
