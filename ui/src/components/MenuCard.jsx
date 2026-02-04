@@ -134,19 +134,24 @@ function MenuCard({ menu, onAddToCart }) {
       </div>
       {isCoffee && menu.options && menu.options.length > 0 && (
         <div className="menu-options">
-          {menu.options.map((option) => (
-            <label key={option.name} className="option-checkbox">
-              <input
-                type="checkbox"
-                checked={selectedOptions.some(opt => opt.name === option.name)}
-                onChange={() => handleOptionToggle(option)}
-                aria-label={`${menu.name} ${option.name} 옵션`}
-              />
-              <span>
-                {option.name} ({option.price > 0 ? `+${option.price.toLocaleString()}원` : '+0원'})
-              </span>
-            </label>
-          ))}
+          {menu.options
+            .filter((option, index, self) => 
+              // 옵션 이름으로 중복 제거 (같은 이름의 옵션은 첫 번째 것만 유지)
+              index === self.findIndex((opt) => opt.name === option.name)
+            )
+            .map((option) => (
+              <label key={option.id || option.name} className="option-checkbox">
+                <input
+                  type="checkbox"
+                  checked={selectedOptions.some(opt => opt.name === option.name)}
+                  onChange={() => handleOptionToggle(option)}
+                  aria-label={`${menu.name} ${option.name} 옵션`}
+                />
+                <span>
+                  {option.name} ({option.price > 0 ? `+${option.price.toLocaleString()}원` : '+0원'})
+                </span>
+              </label>
+            ))}
         </div>
       )}
       <button 

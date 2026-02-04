@@ -27,7 +27,12 @@ export const Menu = {
           '[]'::json
         ) as options
       FROM menus m
-      LEFT JOIN options o ON m.id = o.menu_id
+      LEFT JOIN (
+        SELECT DISTINCT ON (menu_id, name) 
+          id, name, price, menu_id
+        FROM options
+        ORDER BY menu_id, name, id
+      ) o ON m.id = o.menu_id
       GROUP BY m.id
       ORDER BY m.id
     `;
@@ -63,7 +68,12 @@ export const Menu = {
           '[]'::json
         ) as options
       FROM menus m
-      LEFT JOIN options o ON m.id = o.menu_id
+      LEFT JOIN (
+        SELECT DISTINCT ON (menu_id, name) 
+          id, name, price, menu_id
+        FROM options
+        ORDER BY menu_id, name, id
+      ) o ON m.id = o.menu_id
       WHERE m.id = $1
       GROUP BY m.id
     `;
