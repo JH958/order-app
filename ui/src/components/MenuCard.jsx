@@ -65,7 +65,7 @@ function MenuCard({ menu, onAddToCart }) {
     <div className="menu-card">
       <div className="menu-image">
         {menu.image ? (
-          <img src={menu.image} alt={menu.name} />
+          <img src={`/images/${menu.image}`} alt={menu.name} />
         ) : (
           <div className="image-placeholder">
             <span>이미지</span>
