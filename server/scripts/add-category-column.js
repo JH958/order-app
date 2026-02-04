@@ -6,13 +6,36 @@ dotenv.config();
 
 const { Client } = pg;
 
-const client = new Client({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'coffee_order_db',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-});
+// Render.com에서는 DATABASE_URL을 제공하므로 이를 우선 사용
+let clientConfig;
+
+if (process.env.DATABASE_URL) {
+  // DATABASE_URL이 있으면 SSL 연결 사용 (Render.com)
+  clientConfig = {
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  };
+} else {
+  // 개별 환경 변수 사용
+  const host = process.env.DB_HOST || 'localhost';
+  const isRenderDB = host.includes('render.com');
+  
+  clientConfig = {
+    host: host,
+    port: process.env.DB_PORT || 5432,
+    database: process.env.DB_NAME || 'coffee_order_db',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || '',
+    // Render.com 데이터베이스는 SSL 필요
+    ssl: isRenderDB ? {
+      rejectUnauthorized: false
+    } : false
+  };
+}
+
+const client = new Client(clientConfig);
 
 async function addCategoryColumn() {
   try {
@@ -31,6 +54,7 @@ async function addCategoryColumn() {
       await client.query(`
         ALTER TABLE menus 
         ADD COLUMN category VARCHAR(50) DEFAULT 'coffee'
+        CHECK (category IN ('coffee', 'non-coffee', 'etc'))
       `);
       console.log('✅ category 컬럼 추가 완료');
       

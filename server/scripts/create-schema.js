@@ -54,11 +54,36 @@ async function createSchema() {
         price INTEGER NOT NULL CHECK (price >= 0),
         image VARCHAR(500),
         stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+        category VARCHAR(50) DEFAULT 'coffee' CHECK (category IN ('coffee', 'non-coffee', 'etc')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('✅ Menus 테이블 생성 완료');
+    
+    // category 컬럼이 없는 경우 추가 (기존 테이블 마이그레이션)
+    const checkColumnQuery = `
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'menus' AND column_name = 'category'
+    `;
+    const columnExists = await client.query(checkColumnQuery);
+    
+    if (columnExists.rows.length === 0) {
+      console.log('category 컬럼 추가 중...');
+      await client.query(`
+        ALTER TABLE menus 
+        ADD COLUMN category VARCHAR(50) DEFAULT 'coffee' 
+        CHECK (category IN ('coffee', 'non-coffee', 'etc'))
+      `);
+      // 기존 데이터의 category 설정
+      await client.query(`
+        UPDATE menus SET category = 'coffee' WHERE category IS NULL
+      `);
+      console.log('✅ category 컬럼 추가 완료');
+    } else {
+      console.log('✅ category 컬럼이 이미 존재합니다.');
+    }
 
     // 2. Options 테이블
     await client.query(`
