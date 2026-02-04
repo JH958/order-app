@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { requestLogger } from './middleware/requestLogger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import pool from './config/database.js';
+import { ensureCategoryColumn } from './utils/migrateDatabase.js';
 import menuRoutes from './routes/menuRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
@@ -66,11 +67,14 @@ app.listen(PORT, async () => {
   console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
   console.log(`환경: ${process.env.NODE_ENV || 'development'}`);
   
-  // 데이터베이스 연결 테스트
+  // 데이터베이스 연결 테스트 및 마이그레이션
   try {
     const result = await pool.query('SELECT NOW()');
     console.log(`✅ 데이터베이스 연결 성공: ${process.env.DB_NAME || 'coffee_order_db'}`);
     console.log(`   연결 시간: ${result.rows[0].now}`);
+    
+    // category 컬럼 자동 마이그레이션
+    await ensureCategoryColumn();
   } catch (error) {
     console.error('❌ 데이터베이스 연결 실패:', error.message);
   }
