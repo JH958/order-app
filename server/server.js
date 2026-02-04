@@ -5,6 +5,7 @@ import { requestLogger } from './middleware/requestLogger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import pool from './config/database.js';
 import { ensureCategoryColumn } from './utils/migrateDatabase.js';
+import { seedIfEmpty } from './utils/seedDatabase.js';
 import menuRoutes from './routes/menuRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
@@ -76,14 +77,13 @@ app.listen(PORT, async () => {
     // category 컬럼 자동 마이그레이션
     await ensureCategoryColumn();
     
-    // 메뉴 데이터 확인
+    // 메뉴 데이터가 없으면 자동으로 시드 데이터 추가
+    await seedIfEmpty();
+    
+    // 최종 메뉴 개수 확인
     const menuCount = await pool.query('SELECT COUNT(*) as count FROM menus');
     const count = parseInt(menuCount.rows[0].count);
-    console.log(`📊 현재 메뉴 개수: ${count}개`);
-    if (count === 0) {
-      console.warn('⚠️  메뉴 데이터가 없습니다. seed 스크립트를 실행해야 합니다:');
-      console.warn('   Render.com Shell에서: cd server && npm run seed');
-    }
+    console.log(`📊 최종 메뉴 개수: ${count}개`);
   } catch (error) {
     console.error('❌ 데이터베이스 연결 실패:', error.message);
   }
